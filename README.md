@@ -1,7 +1,7 @@
-# FPGA CNN Accelerator — 3×3 Convolution Engine
+# FPGA CNN Accelerator — N×N Convolution Engine
 
 **IEEE SSCS Egypt Chapter — 2026 Student Design Competition**
-FPGA-Based Edge-AI Vision Accelerator performing streaming N×N (3×3) CNN convolution on a grayscale image / feature map.
+FPGA-Based Edge-AI Vision Accelerator performing streaming N×N CNN convolution on a grayscale image / feature map.
 
 Team: **The Bit Spies**
 Saif Eldeen Fathi Ali · Ahmed Amr Farouk · Toka Abdelhamed Mohamed · ALaa Kareem Abdelmola
@@ -11,7 +11,7 @@ Capital University / Helwan University — Electronics & Communication Engineeri
 
 ## 1. Overview
 
-This project implements a **pipelined, streaming 3×3 CNN convolution accelerator** in RTL (SystemVerilog), synthesized and implemented on a real FPGA board (Vivado). It performs valid, stride-1 cross-correlation between an 8-bit unsigned grayscale image stream and a programmable 8-bit signed 3×3 kernel, with an optional ReLU activation stage. The design is verified bit-exact against a Python/NumPy golden model before FPGA implementation.
+This project implements a **pipelined, streaming N×N CNN convolution accelerator** in RTL (SystemVerilog), synthesized and implemented on a real FPGA board (Vivado). It performs valid, stride-1 cross-correlation between an 8-bit unsigned grayscale image stream and a programmable 8-bit signed N×N kernel, with an optional ReLU activation stage. The design is verified bit-exact against a Python/NumPy golden model before FPGA implementation.
 
 ## 2. Specification Compliance Summary
 
@@ -50,7 +50,7 @@ This project implements a **pipelined, streaming 3×3 CNN convolution accelerato
 
 ## 4. Architecture
 
-The accelerator streams the input image pixel-by-pixel into a **line-buffer / sliding-window unit** that forms a 3×3 window every cycle once enough rows/columns have been seen. The window feeds a **systolic array of Processing Elements (PEs)**, one per kernel tap, each computing a signed×unsigned partial product and pipelining it through a fixed-latency multiply-accumulate chain. The programmable kernel is loaded once (serially, one 8-bit coefficient per cycle) into `reg_kernel` before streaming begins. A **ReLU stage** optionally clips negative results to zero before the pixel is presented on `output_pixels`. A single control FSM (`control_fsm`) sequences kernel loading and the convolution/streaming phase.
+The accelerator streams the input image pixel-by-pixel into a **line-buffer / sliding-window unit** that forms a N×N window every cycle once enough rows/columns have been seen. The window feeds a **systolic array of Processing Elements (PEs)**, one per kernel tap, each computing a signed×unsigned partial product and pipelining it through a fixed-latency multiply-accumulate chain. The programmable kernel is loaded once (serially, one 8-bit coefficient per cycle) into `reg_kernel` before streaming begins. A **ReLU stage** optionally clips negative results to zero before the pixel is presented on `output_pixels`. A single control FSM (`control_fsm`) sequences kernel loading and the convolution/streaming phase.
 
 ### 4.1 Module list
 
@@ -58,8 +58,8 @@ The accelerator streams the input image pixel-by-pixel into a **line-buffer / sl
 |---|---|---|
 | `cnn_top` | `cnn_top.sv` | Top-level integration; wires all submodules together |
 | `control_fsm` | `FSM.sv` | 3-state control FSM: `IDLE → LOAD → CONV` |
-| `reg_kernel` | `REG_Kernel.sv` | Serially-loaded 3×3 signed kernel coefficient register file |
-| `line_buff` | `line_buff.sv` | Row-delay line buffers + 3×3 sliding-window generation (`window_gen`) |
+| `reg_kernel` | `REG_Kernel.sv` | Serially-loaded N×N signed kernel coefficient register file |
+| `line_buff` | `line_buff.sv` | Row-delay line buffers + N×N sliding-window generation (`window_gen`) |
 | `PE` | `PE.sv` | Single processing element: signed×unsigned multiply (mapped to a DSP48 slice), 3-stage pipeline |
 | `PE_Array` | instantiated in `cnn_top` as `u_pe_array` | Array of 9 PEs (one per kernel tap) + accumulate/adder tree producing `conv_pixels`; drives `done`/`finish_conv` |
 | `ReLU` | `ReLU.sv` | Optional ReLU post-processing stage; also gates `last_output` |
@@ -80,7 +80,7 @@ The accelerator streams the input image pixel-by-pixel into a **line-buffer / sl
 | Convolution output (`conv_pixels` / `output_pixels`) | Signed | 20 bits (`2·DATA_WIDTH + ⌈log2(K²)⌉ = 16+4`) | Guard bits so the full 9-term dot product of full-range operands cannot overflow; exceeds the mandated 16-bit minimum (spec #6) |
 | ReLU output | Signed | 20 bits | `f(x) = max(0, x)`; negative results zeroed rather than saturated/wrapped |
 
-`OUTPUT_WIDTH` is derived symbolically from `DATA_WIDTH` and `KERNEL_SIZE`, so changing the kernel size in `cnn_config.vh` automatically keeps the accumulator wide enough to avoid overflow — no separate saturation logic is needed in the convolution path for the 3×3 configuration; only the ReLU stage performs a data-dependent clamp (to zero).
+`OUTPUT_WIDTH` is derived symbolically from `DATA_WIDTH` and `KERNEL_SIZE`, so changing the kernel size in `cnn_config.vh` automatically keeps the accumulator wide enough to avoid overflow — no separate saturation logic is needed in the convolution path for the N×N configuration; only the ReLU stage performs a data-dependent clamp (to zero).
 
 ## 6. Pipeline / Timing Behaviour
 
@@ -92,7 +92,7 @@ Each `PE` uses a native signed multiply so Vivado infers a DSP48 slice directly,
 
 A **Python/NumPy golden reference model** (`golden_model.py`) performs the same valid, stride-1, cross-correlation convolution as the RTL — unsigned 8-bit input, signed 8-bit kernel, optional ReLU, saturated to a 16-bit signed range — and exports kernel/image/expected-output vectors as `$readmemh`-compatible hex files (`kernel.mem`, `image.mem`, `relu_output.mem`).
 
-A **self-checking SystemVerilog testbench** (`tb_cnn_top.sv`) drives the DUT with these vectors, captures every output pixel, aligns the captured stream against the golden output (tolerating pipeline slack), and reports a PASS/FAIL with mismatch count. Beyond the primary 3×3 vector, the testbench also runs a set of **edge-case images** (all-zero, full-scale, checkerboard, ramp) and a **multi-kernel regression suite** generated by `golden_model.py`, exercising symmetric, anti-symmetric, and saturating kernels.
+A **self-checking SystemVerilog testbench** (`tb_cnn_top.sv`) drives the DUT with these vectors, captures every output pixel, aligns the captured stream against the golden output (tolerating pipeline slack), and reports a PASS/FAIL with mismatch count. Beyond the primary N×N vector, the testbench also runs a set of **edge-case images** (all-zero, full-scale, checkerboard, ramp) and a **multi-kernel regression suite** generated by `golden_model.py`, exercising symmetric, anti-symmetric, and saturating kernels.
 
 ## 8. FPGA Implementation Results
 
