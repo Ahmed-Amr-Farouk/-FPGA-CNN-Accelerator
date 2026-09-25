@@ -1,0 +1,70 @@
+{
+  "num_cases": 9,
+  "kernel_size": 3,
+  "image_size": 32,
+  "cases": [
+    {
+      "case": "showcase_identity",
+      "kernel": "identity",
+      "raw_min": 0,
+      "raw_max": 255,
+      "overflow_triggered": false
+    },
+    {
+      "case": "showcase_edge_h",
+      "kernel": "edge_h",
+      "raw_min": 0,
+      "raw_max": 1020,
+      "overflow_triggered": false
+    },
+    {
+      "case": "showcase_edge_v",
+      "kernel": "edge_v",
+      "raw_min": 0,
+      "raw_max": 1020,
+      "overflow_triggered": false
+    },
+    {
+      "case": "showcase_sharpen",
+      "kernel": "sharpen",
+      "raw_min": 0,
+      "raw_max": 765,
+      "overflow_triggered": false
+    },
+    {
+      "case": "showcase_box_blur",
+      "kernel": "box_blur",
+      "raw_min": 153,
+      "raw_max": 2250,
+      "overflow_triggered": false
+    },
+    {
+      "case": "checkerboard_box_blur",
+      "kernel": "box_blur",
+      "raw_min": 1020,
+      "raw_max": 1275,
+      "overflow_triggered": false
+    },
+    {
+      "case": "ramp_edge_h",
+      "kernel": "edge_h",
+      "raw_min": 64,
+      "raw_max": 68,
+      "overflow_triggered": false
+    },
+    {
+      "case": "max_value_sharpen",
+      "kernel": "sharpen",
+      "raw_min": 255,
+      "raw_max": 255,
+      "overflow_triggered": false
+    },
+    {
+      "case": "random_edge_v",
+      "kernel": "edge_v",
+      "raw_min": 0,
+      "raw_max": 693,
+      "overflow_triggered": false
+    }
+  ]
+}
