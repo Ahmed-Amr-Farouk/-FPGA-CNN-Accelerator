@@ -225,7 +225,3 @@ python golden_model.py
 3. Apply `Constraints_cnn_top.xdc` (targets the PYNQ-Z2 board, 209.8 MHz clock).
 4. Run Synthesis → Implementation → Generate Bitstream.
 5. Compare post-implementation utilization/timing/power reports against §8.
-
-## 13. License
-
-*Add a license (e.g. MIT) if you'd like others to know how they can use this project.*
